@@ -44,7 +44,7 @@ for name, df, index in zip(dataSets.iloc[:, 0], dataSets.iloc[:, 2], dataSets.in
     dataSets.at[index, 'DataFrame'] = df
     print('\n++++++++++++++++++++++++++++++++++++++++++++ END for ' + name + '\n')
     
-#Concatenem en un dataset, i renombrem les columnes amb el nom.
+#Concatenem en un dataset, i renombrem les columnes amb el nom curt.
 dataset = pd.DataFrame()
 for index, df in zip(dataSets.index, dataSets.iloc[:,2]):
     df = df.rename(columns={"Close": dataSets.at[index, 'sName']})
