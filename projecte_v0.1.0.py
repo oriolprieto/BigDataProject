@@ -23,10 +23,13 @@ dataSets.at[5, 'DataFrame'] = pd.read_csv('EURUSD=X.csv')
 dataSets.at[6, 'Name'] = "Gold"
 dataSets.at[6, 'sName'] = "GOLD"
 dataSets.at[6, 'DataFrame'] = pd.read_csv('GC=F.csv')
+
+#Mostrem informació de tots els datasets
 print(dataSets.head())
 print(dataSets.dtypes)
 print(dataSets.info())
 
+#Ens quedem amb les columes de Date i Close
 for name, df, index in zip(dataSets.iloc[:, 0], dataSets.iloc[:, 2], dataSets.index): 
     print('\n******************************************** Procesing data set: ' + name)
     print(df.info())
@@ -41,22 +44,29 @@ for name, df, index in zip(dataSets.iloc[:, 0], dataSets.iloc[:, 2], dataSets.in
     dataSets.at[index, 'DataFrame'] = df
     print('\n++++++++++++++++++++++++++++++++++++++++++++ END for ' + name + '\n')
     
+#Concatenem en un dataset, i renombrem les columnes amb el nom.
 dataset = pd.DataFrame()
 for index, df in zip(dataSets.index, dataSets.iloc[:,2]):
     df = df.rename(columns={"Close": dataSets.at[index, 'sName']})
     dataset = pd.concat([dataset, df], axis=1, sort=True)
 
+#Mostrem informació del Dataset abans del preprocessat, inclós el nombre de NaNs
 print(dataset.head())
 print(dataset.info())
 print(dataset.isnull().sum())
 
+#Eliminem les files amb tots NaNs, i mostrem nombre de NaNs que queden
 dataset = dataset.dropna(how='all')
 print(dataset.isnull().sum())
 
+#Substituim els NaNs pel valor anterior
 for column in dataset:
     print('Column name: ', column)
     dataset[column] = dataset[column].fillna(method='bfill')    #fillna(dataset[column].mean())
     
+#Mostrem informació del Dataset definitiu, i mostrem que ja no hi ha NaNs
 print(dataset.info())
 print(dataset.isnull().sum())
+
+#Posem GOLD com a categoria
 dataset['GOLD'] = dataset['GOLD'].astype('category')
