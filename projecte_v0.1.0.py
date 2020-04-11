@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import seaborn as sns
 
 dataSets = pd.DataFrame(index=[0, 1, 2, 3, 4, 5, 6], columns=['Name', 'sName', 'DataFrame'])
 dataSets.at[0, 'Name'] = "Dow Jones"
@@ -69,4 +70,21 @@ print(dataset.info())
 print(dataset.isnull().sum())
 
 #Posem GOLD com a categoria
-dataset['GOLD'] = dataset['GOLD'].astype('category')
+#dataset['GOLD'] = dataset['GOLD'].astype('category')
+
+#Obtenim la matriu de correlació de tots amb tots
+dataset_corr = dataset.corr()
+print(dataset_corr)
+
+#Obtenim la correlacio amb l'or
+print('GOLD Correlation with other parameters:')
+dataset_corr_values = dataset_corr['GOLD'][:-1].abs().sort_values(ascending=False)
+print(dataset_corr_values)
+
+#Representem el valor absolut de la correlacio
+print('\n')
+graphic=sns.heatmap(dataset_corr.abs(),annot=True,linewidths=0.5,vmin=0, vmax=1)
+graphic.set(title = "Correlation Matrix Absolute Values")
+print('\n')
+
+
