@@ -1,7 +1,18 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.svm import SVR
+from sklearn.neural_network import MLPRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import explained_variance_score
+import time
 
+################################################################################################
+# 1. Llegir dades i construir dataset.
+################################################################################################
 dataSets = pd.DataFrame(index=[0, 1, 2, 3, 4, 5, 6], columns=['Name', 'sName', 'DataFrame'])
 dataSets.at[0, 'Name'] = "Dow Jones"
 dataSets.at[0, 'sName'] = "DJI"
@@ -71,10 +82,15 @@ print(dataset.isnull().sum())
 
 #Posem GOLD com a categoria
 #dataset['GOLD'] = dataset['GOLD'].astype('category')
+#Posem l'index com a datetime
+dataset.index = pd.to_datetime(dataset.index) 
 
+################################################################################################
+# 2. Analitzem la correlació entre indicadors
+################################################################################################
 #Obtenim la matriu de correlació de tots amb tots
 dataset_corr = dataset.corr()
-print(dataset_corr)
+#print(dataset_corr)
 
 #Obtenim la correlacio amb l'or
 print('GOLD Correlation with other parameters:')
@@ -87,4 +103,47 @@ graphic=sns.heatmap(dataset_corr.abs(),annot=True,linewidths=0.5,vmin=0, vmax=1)
 graphic.set(title = "Correlation Matrix Absolute Values")
 print('\n')
 
+################################################################################################
+# 3. Provem clasificadors regresius, i els optimitzem
+################################################################################################
+#Provem Clasificadors Regresius (per predeir número) que no depenent en el temps 
+X = dataset.iloc[:, :-1]
+y = dataset['GOLD']
+
+#Fem el split amb dates
+X_train = X.loc['2010-01-01':'2017-12-31']
+X_test = X.loc['2018-01-01':]
+y_train = y.loc['2010-01-01':'2017-12-31']
+y_test = y.loc['2018-01-01':]
+
+#Provem els seguents clasificadors: (GNB -> Bayesian Ridge...)
+names = ["KNNReg","TreeReg.", "MLPReg.", "SVMReg.","ForestReg."]
+classifiers = [
+        KNeighborsRegressor(n_neighbors=10),
+        DecisionTreeRegressor(max_depth=20),
+        MLPRegressor(alpha=1, max_iter=1000),
+        SVR(C=1.0, epsilon=0.2),
+        RandomForestRegressor(n_estimators = 100, random_state = 0)]
+
+#Comparem les seguents característiques:
+results = pd.DataFrame(index=['Absolute Error','Variance Score','Train Cost', 'Test Cost'], columns=names)
+
+for name, clf in zip(names, classifiers):
+    t1=time.time()
+    clf.fit(X_train, y_train)
+    t2=time.time()
+    y_pred = clf.predict(X_test)
+    t3=time.time()
+    results.at['Train Cost', name]=round(t2-t1,3);
+    results.at['Test Cost', name]=round(t3-t2,3);
+    results.at['Absolute Error', name]=mean_absolute_error(y_test, y_pred);
+    results.at['Variance Score', name]=explained_variance_score(y_test, y_pred);
+    
+print('Results of Regression Classifiers')
+print(results);
+#Triar clasificador regressiu i optimitzar parametres
+################################################################################################
+# 4. Provem clasificadors temporals
+################################################################################################
+#Provem Clasificadors Temporals (ARIMA,SARIMA...)
 
