@@ -8,6 +8,11 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import explained_variance_score
+from statsmodels.tsa.ar_model import AR
+from statsmodels.tsa.arima_model import ARMA,ARIMA
+
+
+import warnings
 import time
 
 ################################################################################################
@@ -147,3 +152,46 @@ print(results);
 ################################################################################################
 #Provem Clasificadors Temporals (ARIMA,SARIMA...)
 
+#Regresions que només predeixen en funció de l'OR (univariate)
+
+warnings.filterwarnings('ignore', 'statsmodels.tsa.ar_model.AR', FutureWarning)    
+names = ["AR","ARMA","ARIMA"]
+classifiers = [
+        AR(y_train),
+        ARMA(y_train, order=(4, 3)),
+        ARIMA(y_train, order=(1, 1, 1))] 
+
+
+#Comparem les seguents característiques:
+results = pd.DataFrame(index=['AIC','Absolute Error','Variance Score','Train Cost', 'Test Cost',], columns=names)
+
+for name, clf in zip(names, classifiers):
+    t1=time.time()
+    model_fit= clf.fit(disp=False)
+    t2=time.time()
+    y_pred = model_fit.predict('2018-01-01', end='2020-03-27')
+    t3=time.time()
+    results.at['Train Cost', name]=round(t2-t1,3);
+    results.at['Test Cost', name]=round(t3-t2,3);
+    #Problema que tenim, que les dates de la predicció no cuadren amb les de test.
+    #Cuadrem resultats amb el index
+    join = pd.concat([y_pred, y_test], axis=1)
+    join=join.dropna()
+    results.at['Absolute Error', name]=mean_absolute_error(join['GOLD'], join[0]);
+    results.at['Variance Score', name]=explained_variance_score(join['GOLD'], join[0]);
+    results.at['AIC', name]=model_fit.aic;
+    
+
+print('Results of Regression Classifiers')
+print(results);
+
+#Es podria analitzar quina percentatge d'estacionalitat te
+#from statsmodels.tsa.seasonal import seasonal_decompose
+#result = seasonal_decompose(dataset['GOLD'],period=365, model='additive')
+#result.plot()
+
+#Ara com no es estacional no te sentit aplica SARIMA
+#from statsmodels.tsa.statespace.sarimax import SARIMAX
+#SARIMAX(y_train, order=(1, 1, 1), seasonal_order=(2, 1, 2, 100))
+#from statsmodels.tsa.ar_model import AutoReg
+#AutoReg(data, lags = [1, 11, 12])
