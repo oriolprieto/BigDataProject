@@ -147,8 +147,51 @@ for name, clf in zip(names, classifiers):
 print('Results of Regression Classifiers')
 print(results);
 #Triar clasificador regressiu i optimitzar parametres
+
 ################################################################################################
-# 4. Provem clasificadors temporals
+# 4. Provem clasificador Deep Learning KERAS
+################################################################################################
+#Provem Clasificador Deep Learning 
+#Per executar fa falta instalar Tensor Flow
+# conda install -c conda-forge tensorflow
+
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
+def baseline_model():
+    model = Sequential()
+    model.add(Dense(128, input_dim=6, activation='relu')) 
+    model.add(Dense(256, activation='relu'))
+    model.add(Dense(256,activation='relu')) 
+    model.add(Dense(256,activation='relu'))
+    model.add(Dense(64,activation='relu'))
+    model.add(Dense(1,activation='linear'))
+    model.compile(loss='mean_squared_error', optimizer='adam')
+    return model
+
+estimator = KerasRegressor(build_fn=baseline_model, epochs=1, batch_size=30, verbose=1)
+t1=time.time()
+estimator.fit(X_train, y_train,)
+t2=time.time()
+y_pred = estimator.predict(X_test)
+t3=time.time();
+name="Deep Learning"
+results.at['Train Cost', name]=round(t2-t1,3);
+results.at['Test Cost', name]=round(t3-t2,3);
+results.at['Absolute Error', name]=mean_absolute_error(y_test, y_pred);
+results.at['Variance Score', name]=explained_variance_score(y_test, y_pred);
+
+print('Results of Deep Learning')
+print(results[name]);
+
+#Com varien resultats podriem fer bucle o KFold.
+#from sklearn.model_selection import cross_val_score, KFold
+#kfold = KFold(n_splits=10)
+#results = cross_val_score(estimator, X_train, y_train, cv=kfold)
+#print("Results KFold: %.2f (%.2f) MSE" % (results.mean(), results.std()))
+
+################################################################################################
+# 5. Provem clasificadors temporals
 ################################################################################################
 #Provem Clasificadors Temporals (ARIMA,SARIMA...)
 
