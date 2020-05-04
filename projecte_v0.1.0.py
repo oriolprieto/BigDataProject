@@ -1,23 +1,16 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.svm import SVR
-from sklearn.neural_network import MLPRegressor
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import explained_variance_score
-from statsmodels.tsa.ar_model import AR
-from statsmodels.tsa.arima_model import ARMA,ARIMA
-
-
+import matplotlib.pyplot as plt
 import warnings
 import time
 
 ################################################################################################
 # 1. Llegir dades i construir dataset.
 ################################################################################################
+
 dataSets = pd.DataFrame(index=[0, 1, 2, 3, 4, 5, 6], columns=['Name', 'sName', 'DataFrame'])
 dataSets.at[0, 'Name'] = "Dow Jones"
 dataSets.at[0, 'sName'] = "DJI"
@@ -91,7 +84,7 @@ print(dataset.isnull().sum())
 dataset.index = pd.to_datetime(dataset.index) 
 
 ################################################################################################
-# 2. Analitzem la correlació entre indicadors
+# 2. Analitzem la correlació entre indicadors i la serie temporal de l'or
 ################################################################################################
 #Obtenim la matriu de correlació de tots amb tots
 dataset_corr = dataset.corr()
@@ -108,12 +101,51 @@ graphic=sns.heatmap(dataset_corr.abs(),annot=True,linewidths=0.5,vmin=0, vmax=1)
 graphic.set(title = "Correlation Matrix Absolute Values")
 print('\n')
 
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.stattools import adfuller
+#Passem a analitzar el dataset del or
+#Per comprovar si el Or es estacional utilitzem el test ADF (Augmented Dickey Fuller)
+print('AD Fuller Stationary Test')
+result = adfuller(dataset['GOLD'])
+print('ADF Statistic: %f' % result[0])
+print('p-value: %f' % result[1])
+print('Critical Values:')
+for key, value in result[4].items():
+	print('\t%s: %.3f' % (key, value))
+    
+if (result[1]<0.05):
+    print('It is stationary')
+else:
+    print('It is not stationary')
+    
+#Veiem com l'or no es estacionari ja que te tendencia i estacionalitat (escasa, agafem 6 semanes de 5 dies laborables)      
+result = seasonal_decompose(dataset['GOLD'],period=30, model='multiplicative')
+result.plot()
+#Ara com no es massa estacional no te sentit aplica SARIMA
 ################################################################################################
 # 3. Provem clasificadors regresius, i els optimitzem
 ################################################################################################
 #Provem Clasificadors Regresius (per predeir número) que no depenent en el temps 
-X = dataset.iloc[:, :-1]
-y = dataset['GOLD']
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.svm import SVR
+from sklearn.neural_network import MLPRegressor
+from sklearn.ensemble import RandomForestRegressor
+
+datasetDates=dataset.copy()
+
+for i in range(1,10):
+    datasetDates["GOLD" + str(i)] = datasetDates['GOLD'].shift(i)
+ 
+# Class to the last column
+cols = datasetDates.columns.tolist()
+n = int(cols.index('GOLD'))
+cols = cols[:n] + cols[n+1:] + [cols[n]]
+datasetDates = datasetDates[cols]
+datasetDates = datasetDates.dropna()
+
+X = datasetDates.iloc[:, :-1]
+y = datasetDates['GOLD']
 
 #Fem el split amb dates
 X_train = X.loc['2010-01-01':'2017-12-31']
@@ -160,7 +192,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
 def baseline_model():
     model = Sequential()
-    model.add(Dense(128, input_dim=6, activation='relu')) 
+    model.add(Dense(128, input_dim=15, activation='relu')) 
     model.add(Dense(256, activation='relu'))
     model.add(Dense(256,activation='relu')) 
     model.add(Dense(256,activation='relu'))
@@ -196,13 +228,32 @@ print(results[name]);
 #Provem Clasificadors Temporals (ARIMA,SARIMA...)
 
 #Regresions que només predeixen en funció de l'OR (univariate)
+#Mirem els millors coeficients d'arima
+#Per executar fa falta instalar pmdarima
+# conda install -c saravji pmdarima 
+from pmdarima.arima import auto_arima
+from statsmodels.tsa.ar_model import AR
+from statsmodels.tsa.arima_model import ARMA
 
+X = dataset.iloc[:, :-1]
+y = dataset['GOLD']
+
+#Fem el split amb dates
+X_train = X.loc['2010-01-01':'2017-12-31']
+X_test = X.loc['2018-01-01':]
+y_train = y.loc['2010-01-01':'2017-12-31']
+y_test = y.loc['2018-01-01':]
+model_autoARIMA = auto_arima(y_train, start_p=0, start_q=0,test='adf', max_p=3, max_q=3, m=1, d=None, seasonal=False, start_P=0, D=0, trace=True, error_action='ignore', suppress_warnings=True, stepwise=True)
+print(model_autoARIMA.summary())
+
+#No provem:
+#-ARIMA ja que per predeir be necesitem bastants coeficients autoregresius per convertirla en estacionaria
+#-SARIMA ja que no es estacional
 warnings.filterwarnings('ignore', 'statsmodels.tsa.ar_model.AR', FutureWarning)    
-names = ["AR","ARMA","ARIMA"]
+names = ["AR","ARMA"]
 classifiers = [
         AR(y_train),
-        ARMA(y_train, order=(4, 3)),
-        ARIMA(y_train, order=(1, 1, 1))] 
+        ARMA(y_train, order=(6, 3))] 
 
 
 #Comparem les seguents característiques:
@@ -224,17 +275,48 @@ for name, clf in zip(names, classifiers):
     results.at['Variance Score', name]=explained_variance_score(join['GOLD'], join[0]);
     results.at['AIC', name]=model_fit.aic;
     
+#Resultat de la predicció ARMA
+# Gràfica predein l'or entre 2018 i 2020
+plt.figure()
+plt.plot(y_train, label='Historical Price')
+plt.plot(join['GOLD'], color = 'blue', label='Real Price')
+plt.plot(join[0], color = 'orange',label='Predicted Price')
+plt.title('Gold Price Prediction with ARMA')
+plt.xlabel('Time')
+plt.ylabel('Gold Price')
+plt.legend(loc='upper right', fontsize=8)
+plt.show()
 
+################################################################################################
+# 6. Provem ARMA amb variables exógeniques
+################################################################################################
+#Provem Clasificadors Temporal amb variables exogéniques  
+from statsmodels.tsa.arima_model import ARMA
+
+clf=ARMA(y_train,exog=X_train,order=(6, 3))
+t1=time.time()
+model_fit= clf.fit(disp=False)
+t2=time.time()
+y_pred = model_fit.predict('2018-01-01', end='2020-03-27',exog=X_test)
+t3=time.time()
+results.at['Train Cost', "ArmaExo"]=round(t2-t1,3);
+results.at['Test Cost', "ArmaExo"]=round(t3-t2,3);
+join = pd.concat([y_pred, y_test], axis=1)
+join=join.dropna()
+results.at['Absolute Error', "ArmaExo"]=mean_absolute_error(join['GOLD'], join[0]);
+results.at['Variance Score', "ArmaExo"]=explained_variance_score(join['GOLD'], join[0]);
+results.at['AIC', "ArmaExo"]=model_fit.aic;
 print('Results of Regression Classifiers')
 print(results);
 
-#Es podria analitzar quina percentatge d'estacionalitat te
-#from statsmodels.tsa.seasonal import seasonal_decompose
-#result = seasonal_decompose(dataset['GOLD'],period=365, model='additive')
-#result.plot()
-
-#Ara com no es estacional no te sentit aplica SARIMA
-#from statsmodels.tsa.statespace.sarimax import SARIMAX
-#SARIMAX(y_train, order=(1, 1, 1), seasonal_order=(2, 1, 2, 100))
-#from statsmodels.tsa.ar_model import AutoReg
-#AutoReg(data, lags = [1, 11, 12])
+#Resultat de la predicció ARMA
+# Gràfica predein l'or entre 2018 i 2020
+plt.figure()
+plt.plot(y_train, label='Historical Price')
+plt.plot(join['GOLD'], color = 'blue', label='Real Price')
+plt.plot(join[0], color = 'orange',label='Predicted Price')
+plt.title('Gold Price Prediction with ARMA and exogenous variables')
+plt.xlabel('Time')
+plt.ylabel('Gold Price')
+plt.legend(loc='upper right', fontsize=8)
+plt.show()
