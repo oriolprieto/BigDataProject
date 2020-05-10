@@ -101,9 +101,18 @@ graphic=sns.heatmap(dataset_corr.abs(),annot=True,linewidths=0.5,vmin=0, vmax=1)
 graphic.set(title = "Correlation Matrix Absolute Values")
 print('\n')
 
+#Passem a analitzar el dataset del or
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller
-#Passem a analitzar el dataset del or
+#Primer la represntem
+plt.figure(figsize=[10, 6]) 
+plt.title('Gold Price Dataset',fontsize=20)
+plt.plot(dataset['GOLD'])
+plt.xlabel('Date', fontsize=16)
+plt.ylabel('Gold Price per Ounce', fontsize=16)
+plt.grid(True)
+plt.show()
+
 #Per comprovar si el Or es estacional utilitzem el test ADF (Augmented Dickey Fuller)
 print('AD Fuller Stationary Test')
 result = adfuller(dataset['GOLD'])
@@ -285,15 +294,17 @@ for name, clf in zip(names, classifiers):
 print('Results of Temporal Classifier')
 print(results);
 # Gràfica predein l'or entre 2018 i 2020
-plt.figure()
+plt.figure(figsize=[10, 6])
 plt.plot(y_train, label='Historical Price')
 plt.plot(join['GOLD'], color = 'blue', label='Real Price')
 plt.plot(join[0], color = 'orange',label='Predicted Price')
-plt.title('Gold Price Prediction with ARMA')
-plt.xlabel('Time')
-plt.ylabel('Gold Price')
-plt.legend(loc='upper right', fontsize=8)
+plt.title('Gold Price Prediction with ARMA',fontsize=20)
+plt.xlabel('Time',fontsize=16)
+plt.ylabel('Gold Price',fontsize=16)
+plt.legend(loc='upper right', fontsize=14)
+plt.grid(True)
 plt.show()
+
 
 ################################################################################################
 # 6. Provem ARMA amb variables exógeniques
@@ -319,12 +330,13 @@ print(results);
 
 #Resultat de la predicció ARMA
 # Gràfica predein l'or entre 2018 i 2020
-plt.figure()
+plt.figure(figsize=[10, 6])
 plt.plot(y_train, label='Historical Price')
 plt.plot(join['GOLD'], color = 'blue', label='Real Price')
 plt.plot(join[0], color = 'orange',label='Predicted Price')
-plt.title('Gold Price Prediction with ARMA and exogenous variables')
-plt.xlabel('Time')
-plt.ylabel('Gold Price')
-plt.legend(loc='upper right', fontsize=8)
+plt.title('Gold Price Prediction with ARMA',fontsize=20)
+plt.xlabel('Time',fontsize=16)
+plt.ylabel('Gold Price',fontsize=16)
+plt.legend(loc='upper right', fontsize=14)
+plt.grid(True)
 plt.show()
