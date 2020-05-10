@@ -148,10 +148,10 @@ X = datasetDates.iloc[:, :-1]
 y = datasetDates['GOLD']
 
 #Fem el split amb dates
-X_train = X.loc['2010-01-01':'2017-12-31']
-X_test = X.loc['2018-01-01':]
-y_train = y.loc['2010-01-01':'2017-12-31']
-y_test = y.loc['2018-01-01':]
+X_train = X.loc['2010-01-01':'2018-12-31']
+X_test = X.loc['2019-01-01':]
+y_train = y.loc['2010-01-01':'2018-12-31']
+y_test = y.loc['2019-01-01':]
 
 #Provem els seguents clasificadors: (GNB -> Bayesian Ridge...)
 names = ["KNNReg","TreeReg.", "MLPReg.", "SVMReg.","ForestReg."]
@@ -179,7 +179,6 @@ for name, clf in zip(names, classifiers):
 print('Results of Regression Classifiers')
 print(results);
 #Triar clasificador regressiu i optimitzar parametres
-
 ################################################################################################
 # 4. Provem clasificador Deep Learning KERAS
 ################################################################################################
@@ -201,26 +200,33 @@ def baseline_model():
     model.compile(loss='mean_squared_error', optimizer='adam')
     return model
 
-estimator = KerasRegressor(build_fn=baseline_model, epochs=1, batch_size=30, verbose=1)
+estimator = KerasRegressor(build_fn=baseline_model, epochs=100, batch_size=30, verbose=1)
 t1=time.time()
-estimator.fit(X_train, y_train,)
+history=estimator.fit(X_train, y_train)
 t2=time.time()
 y_pred = estimator.predict(X_test)
 t3=time.time();
 name="Deep Learning"
+results = pd.DataFrame(index=['Absolute Error','Variance Score','Train Cost', 'Test Cost'])
 results.at['Train Cost', name]=round(t2-t1,3);
 results.at['Test Cost', name]=round(t3-t2,3);
 results.at['Absolute Error', name]=mean_absolute_error(y_test, y_pred);
 results.at['Variance Score', name]=explained_variance_score(y_test, y_pred);
 
 print('Results of Deep Learning')
-print(results[name]);
+print(results);
 
-#Com varien resultats podriem fer bucle o KFold.
-#from sklearn.model_selection import cross_val_score, KFold
-#kfold = KFold(n_splits=10)
-#results = cross_val_score(estimator, X_train, y_train, cv=kfold)
-#print("Results KFold: %.2f (%.2f) MSE" % (results.mean(), results.std()))
+#Mostrem el loss en funció de les epochs per justificar el nombre de epochs triades
+#Al ser un kerasregressor, només obtenim les pèrdues (losses) i no accuracy  
+plt.figure(figsize=[8, 6]) 
+plt.plot(history.history['loss'], 'b', linewidth=3.0) 
+plt.legend(['Training Losses'], fontsize=14)
+plt.xlabel('Epochs ', fontsize=16)
+plt.ylabel('Losses', fontsize=16)
+plt.ylim(0,2000)
+plt.title('Loss Curve', fontsize=20) 
+plt.show()
+
 
 ################################################################################################
 # 5. Provem clasificadors temporals
@@ -276,6 +282,8 @@ for name, clf in zip(names, classifiers):
     results.at['AIC', name]=model_fit.aic;
     
 #Resultat de la predicció ARMA
+print('Results of Temporal Classifier')
+print(results);
 # Gràfica predein l'or entre 2018 i 2020
 plt.figure()
 plt.plot(y_train, label='Historical Price')
