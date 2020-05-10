@@ -148,10 +148,10 @@ X = datasetDates.iloc[:, :-1]
 y = datasetDates['GOLD']
 
 #Fem el split amb dates
-X_train = X.loc['2010-01-01':'2018-12-31']
-X_test = X.loc['2019-01-01':]
-y_train = y.loc['2010-01-01':'2018-12-31']
-y_test = y.loc['2019-01-01':]
+X_train = X.loc['2010-01-01':'2017-12-31']
+X_test = X.loc['2018-01-01':]
+y_train = y.loc['2010-01-01':'2017-12-31']
+y_test = y.loc['2018-01-01':]
 
 #Provem els seguents clasificadors: (GNB -> Bayesian Ridge...)
 names = ["KNNReg","TreeReg.", "MLPReg.", "SVMReg.","ForestReg."]
