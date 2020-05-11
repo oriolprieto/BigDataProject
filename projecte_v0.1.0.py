@@ -248,7 +248,7 @@ plt.show()
 # conda install -c saravji pmdarima 
 from pmdarima.arima import auto_arima
 from statsmodels.tsa.ar_model import AR
-from statsmodels.tsa.arima_model import ARMA
+from statsmodels.tsa.arima_model import ARMA,ARIMA
 
 X = dataset.iloc[:, :-1]
 y = dataset['GOLD']
@@ -260,15 +260,18 @@ y_train = y.loc['2010-01-01':'2017-12-31']
 y_test = y.loc['2018-01-01':]
 model_autoARIMA = auto_arima(y_train, start_p=0, start_q=0,test='adf', max_p=3, max_q=3, m=1, d=None, seasonal=False, start_P=0, D=0, trace=True, error_action='ignore', suppress_warnings=True, stepwise=True)
 print(model_autoARIMA.summary())
+# Original Series
+
 
 #No provem:
-#-ARIMA ja que per predeir be necesitem bastants coeficients autoregresius per convertirla en estacionaria
+#-ARIMA ja que per predeir be necesitem bastants coeficients autoregresius per convertirla en estacionaria  ARIMA(history, order=(0,1,0))
 #-SARIMA ja que no es estacional
 warnings.filterwarnings('ignore', 'statsmodels.tsa.ar_model.AR', FutureWarning)    
-names = ["AR","ARMA"]
+names = ["AR","ARMA","ARIMA"]
 classifiers = [
         AR(y_train),
-        ARMA(y_train, order=(6, 3))] 
+        ARMA(y_train, order=(5, 5)),
+        ARIMA(y_train, order=(0,1,0))] 
 
 
 #Comparem les seguents característiques:
@@ -282,6 +285,12 @@ for name, clf in zip(names, classifiers):
     t3=time.time()
     results.at['Train Cost', name]=round(t2-t1,3);
     results.at['Test Cost', name]=round(t3-t2,3);
+    #Problema que tenim que ARIMA, retorna la diferencia, diff():
+    if (name=="ARIMA"):
+        y_diff=y_pred;
+        y_pred_np=np.arange(y_train[-1],y_train[-1]+y_diff[0]*(len(y_test)-1), y_diff[0])
+        y_pred=pd.Series(y_pred_np, index=y_test.index)    
+        
     #Problema que tenim, que les dates de la predicció no cuadren amb les de test.
     #Cuadrem resultats amb el index
     join = pd.concat([y_pred, y_test], axis=1)
@@ -289,7 +298,7 @@ for name, clf in zip(names, classifiers):
     results.at['Absolute Error', name]=mean_absolute_error(join['GOLD'], join[0]);
     results.at['Variance Score', name]=explained_variance_score(join['GOLD'], join[0]);
     results.at['AIC', name]=model_fit.aic;
-    
+
 #Resultat de la predicció ARMA
 print('Results of Temporal Classifier')
 print(results);
@@ -299,8 +308,8 @@ plt.plot(y_train, label='Historical Price')
 plt.plot(join['GOLD'], color = 'blue', label='Real Price')
 plt.plot(join[0], color = 'orange',label='Predicted Price')
 plt.title('Gold Price Prediction with ARMA',fontsize=20)
-plt.xlabel('Time',fontsize=16)
-plt.ylabel('Gold Price',fontsize=16)
+plt.xlabel('Date',fontsize=16)
+plt.ylabel('Gold Price per Ounce',fontsize=16)
 plt.legend(loc='upper right', fontsize=14)
 plt.grid(True)
 plt.show()
@@ -312,7 +321,7 @@ plt.show()
 #Provem Clasificadors Temporal amb variables exogéniques  
 from statsmodels.tsa.arima_model import ARMA
 
-clf=ARMA(y_train,exog=X_train,order=(6, 3))
+clf=ARMA(y_train,exog=X_train,order=(5, 5))
 t1=time.time()
 model_fit= clf.fit(disp=False)
 t2=time.time()
@@ -334,9 +343,9 @@ plt.figure(figsize=[10, 6])
 plt.plot(y_train, label='Historical Price')
 plt.plot(join['GOLD'], color = 'blue', label='Real Price')
 plt.plot(join[0], color = 'orange',label='Predicted Price')
-plt.title('Gold Price Prediction with ARMA',fontsize=20)
-plt.xlabel('Time',fontsize=16)
-plt.ylabel('Gold Price',fontsize=16)
+plt.title('Gold Price Prediction with ARMA and exogenous variables',fontsize=20)
+plt.xlabel('Date',fontsize=16)
+plt.ylabel('Gold Price per Ounce',fontsize=16)
 plt.legend(loc='upper right', fontsize=14)
 plt.grid(True)
 plt.show()
