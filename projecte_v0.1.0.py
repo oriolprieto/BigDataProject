@@ -185,7 +185,7 @@ for name, clf in zip(names, classifiers):
     results.at['Absolute Error', name]=mean_absolute_error(y_test, y_pred);
     results.at['Variance Score', name]=explained_variance_score(y_test, y_pred);
     
-print('Results of Regression Classifiers')
+print('Results of Regression Models')
 print(results);
 #Triar clasificador regressiu i optimitzar parametres
 ################################################################################################
@@ -300,7 +300,7 @@ for name, clf in zip(names, classifiers):
     results.at['AIC', name]=model_fit.aic;
 
 #Resultat de la predicció ARMA
-print('Results of Temporal Classifier')
+print('Results of Temporal Model')
 print(results);
 # Gràfica predein l'or entre 2018 i 2020
 plt.figure(figsize=[10, 6])
@@ -334,7 +334,7 @@ join=join.dropna()
 results.at['Absolute Error', "ArmaExo"]=mean_absolute_error(join['GOLD'], join[0]);
 results.at['Variance Score', "ArmaExo"]=explained_variance_score(join['GOLD'], join[0]);
 results.at['AIC', "ArmaExo"]=model_fit.aic;
-print('Results of Regression Classifiers')
+print('Results of Regression Models')
 print(results);
 
 #Resultat de la predicció ARMA
