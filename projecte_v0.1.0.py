@@ -104,18 +104,22 @@ print('\n')
 #Passem a analitzar el dataset del or
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller
-#Primer la represntem
+#Primer la representem mostrant els intervals
+historical = dataset['GOLD'].loc['2010-01-01':'2017-12-31']
+predicted = dataset['GOLD'].loc['2018-01-01':]
 plt.figure(figsize=[10, 6]) 
 plt.title('Gold Price Dataset',fontsize=20)
-plt.plot(dataset['GOLD'])
+plt.plot(historical,label='Historical Price (Train)')
+plt.plot(predicted, color = 'red',label='Actual Price (Test)')
 plt.xlabel('Date', fontsize=16)
+plt.legend(loc='upper right', fontsize=14)
 plt.ylabel('Gold Price per Ounce', fontsize=16)
 plt.grid(True)
 plt.show()
 
 #Per comprovar si el Or es estacional utilitzem el test ADF (Augmented Dickey Fuller)
 print('AD Fuller Stationary Test')
-result = adfuller(dataset['GOLD'])
+result = adfuller(dataset['GOLD'])     #Si fem el test amb el primer ordre de diferenciació, passa a ser estacionaria:dataset['GOLD'].diff().dropna()
 print('ADF Statistic: %f' % result[0])
 print('p-value: %f' % result[1])
 print('Critical Values:')
@@ -125,7 +129,7 @@ for key, value in result[4].items():
 if (result[1]<0.05):
     print('It is stationary')
 else:
-    print('It is not stationary')
+    print('It is not stationary')  
     
 #Veiem com l'or no es estacionari ja que te tendencia i estacionalitat (escasa, agafem 6 semanes de 5 dies laborables)      
 result = seasonal_decompose(dataset['GOLD'],period=30, model='multiplicative')
@@ -325,8 +329,9 @@ clf=ARMA(y_train,exog=X_train,order=(5, 5))
 t1=time.time()
 model_fit= clf.fit(disp=False)
 t2=time.time()
-y_pred = model_fit.predict('2018-01-01', end='2020-03-27',exog=X_test)
+y_pred = model_fit.predict('2018-01-01', end='2020-03-27',exog=X_test)#Predicció a un any 2019-01-01
 t3=time.time()
+results = pd.DataFrame(index=['Absolute Error','Variance Score','Train Cost', 'Test Cost'])
 results.at['Train Cost', "ArmaExo"]=round(t2-t1,3);
 results.at['Test Cost', "ArmaExo"]=round(t3-t2,3);
 join = pd.concat([y_pred, y_test], axis=1)
@@ -340,7 +345,7 @@ print(results);
 #Resultat de la predicció ARMA
 # Gràfica predein l'or entre 2018 i 2020
 plt.figure(figsize=[10, 6])
-plt.plot(y_train, label='Historical Price')
+plt.plot(y_train.loc['2016-01-01':'2017-12-31'], label='Historical Price')
 plt.plot(join['GOLD'], color = 'blue', label='Real Price')
 plt.plot(join[0], color = 'orange',label='Predicted Price')
 plt.title('Gold Price Prediction with ARMA and exogenous variables',fontsize=20)
