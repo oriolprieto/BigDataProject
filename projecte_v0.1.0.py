@@ -191,7 +191,58 @@ for name, clf in zip(names, classifiers):
     
 print('Results of Regression Models')
 print(results);
+
 #Triar clasificador regressiu i optimitzar parametres
+
+for i in range(1,30):
+    datasetDates["GOLD" + str(i)] = datasetDates['GOLD'].shift(i)
+ 
+# Class to the last column
+cols = datasetDates.columns.tolist()
+n = int(cols.index('GOLD'))
+cols = cols[:n] + cols[n+1:] + [cols[n]]
+datasetDates = datasetDates[cols]
+datasetDates = datasetDates.dropna()
+
+X = datasetDates.iloc[:, :-1]
+y = datasetDates['GOLD']
+
+#Fem el split amb dates
+X_train = X.loc['2010-01-01':'2017-12-31']
+X_test = X.loc['2018-01-01':]
+y_train = y.loc['2010-01-01':'2017-12-31']
+y_test = y.loc['2018-01-01':]
+
+results = pd.DataFrame(index=['Absolute Error','Variance Score','Train Cost', 'Test Cost'])
+clas=DecisionTreeRegressor(max_depth=5);
+t1=time.time()
+clas.fit(X_train, y_train)
+t2=time.time()
+y_pred = clas.predict(X_test)
+t3=time.time()
+results.at['Train Cost', 'TreeRegressor']=round(t2-t1,3);
+results.at['Test Cost', 'TreeRegressor']=round(t3-t2,3);
+results.at['Absolute Error', 'TreeRegressor']=mean_absolute_error(y_test, y_pred);
+results.at['Variance Score', 'TreeRegressor']=explained_variance_score(y_test, y_pred);
+
+print('Results of Tree Regressor')
+print(results);
+
+#Gràfica Marc
+y_pred_df=pd.DataFrame(y_pred,index=y_test.index)
+join = pd.concat([y_pred_df, y_test], axis=1)
+join=join.dropna()
+
+plt.figure(figsize=[10, 6])
+plt.plot(y_test, color = 'blue', label='Real Price')
+plt.plot(y_pred_df, color = 'orange',label='Predicted Price')
+plt.title('Gold Price Prediction day by day with Tree Regressor',fontsize=20)
+plt.xlabel('Date',fontsize=16)
+plt.ylabel('Gold Price per Ounce',fontsize=16)
+plt.legend(loc='upper left', fontsize=14)
+plt.grid(True)
+plt.show()
+
 ################################################################################################
 # 4. Provem clasificador Deep Learning KERAS
 ################################################################################################
@@ -204,16 +255,16 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
 def baseline_model():
     model = Sequential()
-    model.add(Dense(128, input_dim=15, activation='relu')) 
-    model.add(Dense(256, activation='relu'))
-    model.add(Dense(256,activation='relu')) 
-    model.add(Dense(256,activation='relu'))
+    model.add(Dense(16, input_dim=15, activation='relu')) 
+    model.add(Dense(32, activation='relu'))
+    model.add(Dense(32,activation='relu')) 
+    model.add(Dense(32,activation='relu'))
     model.add(Dense(64,activation='relu'))
     model.add(Dense(1,activation='linear'))
     model.compile(loss='mean_squared_error', optimizer='adam')
     return model
 
-estimator = KerasRegressor(build_fn=baseline_model, epochs=100, batch_size=30, verbose=1)
+estimator = KerasRegressor(build_fn=baseline_model, epochs=100, batch_size=100, verbose=1)
 t1=time.time()
 history=estimator.fit(X_train, y_train)
 t2=time.time()
@@ -230,7 +281,8 @@ print('Results of Deep Learning')
 print(results);
 
 #Mostrem el loss en funció de les epochs per justificar el nombre de epochs triades
-#Al ser un kerasregressor, només obtenim les pèrdues (losses) i no accuracy  
+#Al ser un kerasregressor, només obtenim les pèrdues (losses) i no accuracy 
+ 
 plt.figure(figsize=[8, 6]) 
 plt.plot(history.history['loss'], 'b', linewidth=3.0) 
 plt.legend(['Training Losses'], fontsize=14)
