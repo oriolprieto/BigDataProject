@@ -193,6 +193,7 @@ print('Results of Regression Models')
 print(results);
 
 #Triar clasificador regressiu i optimitzar parametres
+#########################################################################
 
 for i in range(1,30):
     datasetDates["GOLD" + str(i)] = datasetDates['GOLD'].shift(i)
@@ -228,11 +229,10 @@ results.at['Variance Score', 'TreeRegressor']=explained_variance_score(y_test, y
 print('Results of Tree Regressor')
 print(results);
 
-#Gràfica Marc
+#Gràfica
 y_pred_df=pd.DataFrame(y_pred,index=y_test.index)
 join = pd.concat([y_pred_df, y_test], axis=1)
 join=join.dropna()
-
 plt.figure(figsize=[10, 6])
 plt.plot(y_test, color = 'blue', label='Real Price')
 plt.plot(y_pred_df, color = 'orange',label='Predicted Price')
